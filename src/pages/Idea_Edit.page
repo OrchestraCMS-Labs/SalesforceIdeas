@@ -1,0 +1,382 @@
+<apex:page controller="cms.CreateContentController" extensions="IdeaLayout"
+    showHeader="false" sidebar="false" cache="false" standardStylesheets="false">
+    <script>
+$(document).ready(init);
+
+function init() {
+    ce.content_editor('registerSaveFunction', getAttributes);
+
+    var isEnabled = ocmsEditorAPI.getEnabled();
+
+    // Populate Zones dropdown
+    $.orchestracmsRestProxy.doAjaxServiceRequest('IdeaService', {action: 'getZones'}, function(alwaysTrue, result) {
+        var selectedZone = '{!JSENCODE(zoneId)}';
+        var $zoneIdSelect = $('#zoneId');
+
+        $zoneIdSelect.append('<option value="">All Zones</option>');
+
+        for(var zoneId in result.zones) {
+            $('<option>')
+                .prop('value', zoneId)
+                .text(result.zones[zoneId])
+                .prop('selected', selectedZone == zoneId)
+                .appendTo($zoneIdSelect);
+        }
+    }, null, true); // Read-only
+
+    // Populate Categories multiselect
+    $('#categories_widget').multipicklist({
+        passThruId: 'categories',
+        type: 'checkbox',
+        value: JSON.parse('{!JSENCODE(categories)}'),
+        object_name: 'Idea',
+        field_name: 'Categories'
+    });
+
+    $('#pageSize').val('{!pageSize}');
+
+    // Init detailUrl Page Selector
+    var detailUrlJson = {!IF( OR(detailUrl.LinkJSON == null,detailUrl.LinkJSON == ''),
+        'null',
+        detailUrl.LinkJSON)}
+
+    $('#detailUrl').page_selector_input({
+        input_field: 'detailUrl',
+        input_id: 'detailUrl_selector_input',
+        dialog_id: 'detailUrl_selector_dialog',
+        selected: detailUrlJson,
+        selected_name: '{!JSENCODE(detailUrl.LinkName)}'
+    });
+
+    // isCurrentUser checkbox
+    $('#isCurrentUser').prop('checked', {!isCurrentUser});
+
+    $('#listTitle').val('{!JSENCODE(listTitle)}');
+    $('#listDescription').val('{!JSENCODE(listDescription)}');
+    $('#commentTitle').val('{!JSENCODE(commentTitle)}');
+    $('#postIdeaTitle').val('{!JSENCODE(postIdeaTitle)}');
+
+    $('#addCommentLabel').val('{!JSENCODE(addCommentLabel)}');
+    $('#resetCommentLabel').val('{!JSENCODE(resetCommentLabel)}');
+    $('#pointsLabel').val('{!JSENCODE(pointsLabel)}');
+    $('#promotedLabel').val('{!JSENCODE(promotedLabel)}');
+    $('#demotedLabel').val('{!JSENCODE(demotedLabel)}');
+    $('#promoteButtonLabel').val('{!JSENCODE(promoteButtonLabel)}');
+    $('#demoteButtonLabel').val('{!JSENCODE(demoteButtonLabel)}');
+    $('#categorySelectorLabel').val('{!JSENCODE(categorySelectorLabel)}');
+    $('#statusSelectorLabel').val('{!JSENCODE(statusSelectorLabel)}');
+    $('#searchLabel').val('{!JSENCODE(searchLabel)}');
+    $('#sortRecentLabel').val('{!JSENCODE(sortRecentLabel)}');
+    $('#sortPopularLabel').val('{!JSENCODE(sortPopularLabel)}');
+    $('#submitIdeaLabel').val('{!JSENCODE(submitIdeaLabel)}');
+    $('#refreshLabel').val('{!JSENCODE(refreshLabel)}');
+    $('#showMoreLabel').val('{!JSENCODE(showMoreLabel)}');
+    $('#titleLabel').val('{!JSENCODE(titleLabel)}');
+    $('#categoryLabel').val('{!JSENCODE(categoryLabel)}');
+    $('#bodyLabel').val('{!JSENCODE(bodyLabel)}');
+
+    if(isEnabled) {
+        $('input, textarea, select').removeAttr('disabled');
+    }
+}
+
+function getAttributes() {
+    var attributes = [];
+    var categoriesCsv;
+
+    attributes.push({
+        name: 'zoneId',
+        value: $('#zoneId :selected').val(),
+        type: 'Id',
+        simple: true,
+        lang: ''
+    });
+
+    attributes.push({
+        name: 'pageSize',
+        value: $('#pageSize').val(),
+        type: 'Integer',
+        simple: true,
+        lang: ''
+    });
+
+    categoriesCsv = $('#categories_widget').multipicklist('getValue');
+    attributes.push({
+        name: 'categories',
+        value: JSON.stringify(categoriesCsv.split(',')),
+        type: 'Text',
+        lang: ''
+    });
+
+    attributes.push({
+        name: 'detailUrl',
+        value: $('#detailUrl').page_selector_input('getSerializedLink'),
+        type: 'Link',
+        lang: ''
+    });
+
+    attributes.push({
+        name: 'isCurrentUser',
+        value: $('#isCurrentUser').is(':checked').toString(),
+        type: 'Boolean',
+        lang: ''
+    });
+
+    attributes.push(createSimpleTextAttribute('listTitle'));
+    attributes.push(createSimpleTextAttribute('listDescription'));
+    attributes.push(createSimpleTextAttribute('commentTitle'));
+    attributes.push(createSimpleTextAttribute('postIdeaTitle'));
+
+    attributes.push(createSimpleTextAttribute('addCommentLabel'));
+    attributes.push(createSimpleTextAttribute('resetCommentLabel'));
+    attributes.push(createSimpleTextAttribute('pointsLabel'));
+    attributes.push(createSimpleTextAttribute('promotedLabel'));
+    attributes.push(createSimpleTextAttribute('demotedLabel'));
+    attributes.push(createSimpleTextAttribute('promoteButtonLabel'));
+    attributes.push(createSimpleTextAttribute('demoteButtonLabel'));
+    attributes.push(createSimpleTextAttribute('categorySelectorLabel'));
+    attributes.push(createSimpleTextAttribute('statusSelectorLabel'));
+    attributes.push(createSimpleTextAttribute('searchLabel'));
+    attributes.push(createSimpleTextAttribute('sortRecentLabel'));
+    attributes.push(createSimpleTextAttribute('sortPopularLabel'));
+    attributes.push(createSimpleTextAttribute('submitIdeaLabel'));
+    attributes.push(createSimpleTextAttribute('refreshLabel'));
+    attributes.push(createSimpleTextAttribute('showMoreLabel'));
+    attributes.push(createSimpleTextAttribute('titleLabel'));
+    attributes.push(createSimpleTextAttribute('categoryLabel'));
+    attributes.push(createSimpleTextAttribute('bodyLabel'));
+
+    return attributes;
+}
+
+function createSimpleTextAttribute(inputId) {
+    var $element = $('#' + inputId);
+
+    return {
+        name: inputId,
+        value: $element.val(),
+        type: 'Text',
+        simple: true
+    };
+}
+    </script>
+
+    <form>
+        <table class="ocmsContentEditor ocmsContentEditorNested">
+            <tr class="ocmsEditorSubtitle">
+                <td>Configuration</td>
+            </tr>
+            <tr>
+                <td>
+                    <label class="ocmsLabel" for="zoneId">Zone</label>
+                    <select id="zoneId" disabled="disabled"></select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label class="ocmsLabel" for="zoneId">Available Categories (Idea List &amp; Idea Form only)</label>
+                    <input id="categories" type="hidden" />
+                    <div id="categories_widget"></div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label class="ocmsLabel" for="pageSize">Ideas Per Page</label>
+                    <input class="ocmsTextInputLrg" type="number" id="pageSize" disabled="disabled" min="1" max="50" />
+                    <p class="ocmsHelpText">Must be between 1 and 50</p>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label class="ocmsLabel">Idea Detail Page</label>
+                    <div id="detailUrl"></div>
+                    <p class="ocmsHelpText">This page should have an Idea Detail content template</p>
+                </td>
+            </tr>
+            <tr class="ocmsCheckForm">
+                <td>
+                    <ul>
+                        <li>
+                            <label class="ocmsLabel">
+                                <input type="checkbox" id="isCurrentUser" disabled="disabled" />
+                                Only show ideas submitted by the current user (Idea List only)
+                            </label>
+                        </li>
+                    </ul>
+                </td>
+            </tr>
+
+            <tr class="ocmsEditorSubtitle">
+                <td>Section Headings</td>
+            </tr>
+            <tr>
+                <td>
+                    <label class="ocmsLabel" for="listTitle">Idea List Title</label>
+                    <input class="ocmsTextInputLrg" type="text" id="listTitle" disabled="disabled" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label class="ocmsLabel" for="listDescription">Idea List Description</label>
+                    <textarea id="listDescription" rows="5" cols="65" disabled="disabled"></textarea>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label class="ocmsLabel" for="commentTitle">Comment Section Title</label>
+                    <input class="ocmsTextInputLrg" type="text" id="commentTitle" disabled="disabled" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label class="ocmsLabel" for="postIdeaTitle">Idea Form Title</label>
+                    <input class="ocmsTextInputLrg" type="text" id="postIdeaTitle" disabled="disabled" />
+                </td>
+            </tr>
+
+            <tr class="ocmsEditorSubtitle">
+                <td>Labels</td>
+            </tr>
+            <tr class="ocmsTable">
+                <td>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Label Name</th>
+                                <th>Label Text</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><label for="addCommentLabel">Add Comment Button</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="addCommentLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="resetCommentLabel">Cancel Add Comment Button</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="resetCommentLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="pointsLabel">Points (ex. "30 <b>points</b>")</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="pointsLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="promotedLabel">"Promoted" Status Label</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="promotedLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="demotedLabel">"Demoted" Status Label</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="demotedLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="promoteButtonLabel">"Promote" Button Label</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="promoteButtonLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="demoteButtonLabel">"Demote" Button Label</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="demoteButtonLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="categorySelectorLabel">Category Selector Default Label (Used in Idea List)</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="categorySelectorLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="statusSelectorLabel">Status Selector Default Label (Used in Idea List)</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="statusSelectorLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="searchLabel">Search Input Placeholder Text</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="searchLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sortRecentLabel">Recent Sort Label (Used on Idea List)</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="sortRecentLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sortPopularLabel">Popular Sort Label (Used on Idea List)</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="sortPopularLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="submitIdeaLabel">Submit Idea Label (Used on Idea Form)</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="submitIdeaLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="refreshLabel">Refresh Button Label (Used on Idea List)</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="refreshLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="showMoreLabel">Show More Label (Used on Idea List)</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="showMoreLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="titleLabel">Title Field Label (Used in Idea Form)</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="titleLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="categoryLabel">Category Field Label (Used in Idea Form)</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="categoryLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="bodyLabel">Body Label (Used on Idea Form)</label></td>
+                                <td>
+                                    <input type="text" class="ocmsTextInputLrg"
+                                        id="bodyLabel" disabled="disabled" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </form>
+</apex:page>

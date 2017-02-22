@@ -42,9 +42,15 @@ This content type requires a minimum of OrchestraCMS package 7.184 (Winter 2016,
     5. IdeaList.cls
     6. IdeaService.cls
     7. IdeaService_Test.cls
-2. Zip the contents of resource-bundles/Idea.resource and deploy the compressed file as Idea.resource
+2. Deploy the following static resources
+    1. Idea.resource
 3. Deploy the following Visualforce pages to the target Salesforce organization
     1. Idea_Edit.page
+
+<a href="https://githubsfdeploy.herokuapp.com">
+  <img alt="Deploy to Salesforce"
+       src="https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/deploy.png">
+</a>
 
 <a name="configuration"></a>
 ### Configuration
